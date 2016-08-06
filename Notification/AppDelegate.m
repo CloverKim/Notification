@@ -7,8 +7,9 @@
 //
 
 #import "AppDelegate.h"
+#import <UserNotifications/UserNotifications.h>
 
-@interface AppDelegate ()
+@interface AppDelegate ()<UNUserNotificationCenterDelegate>
 
 @end
 
@@ -16,10 +17,51 @@
 
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    // 使用 UNUserNotificationCenter 来管理通知
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    // 设置代理为self
+    center.delegate = self;
+    
+    [center requestAuthorizationWithOptions:(UNAuthorizationOptionBadge | UNAuthorizationOptionSound | UNAuthorizationOptionAlert) completionHandler:^(BOOL granted, NSError * _Nullable error) {
+    }];
+    
+    // 注册一个本地的通知
+    [self registerNotification:2.0];
     return YES;
 }
 
+/**
+ *  注册一个本地的通知
+ *
+ *  @param alerTime 延迟通知的时间
+ */
+- (void)registerNotification:(NSInteger )alerTime {
+    // 1.使用 UNUserNotificationCenter 来管理通知
+    UNUserNotificationCenter* center = [UNUserNotificationCenter currentNotificationCenter];
+    
+    // 2.需创建一个包含待通知内容的 UNMutableNotificationContent 对象，注意不是 UNNotificationContent ,此对象为不可变对象。
+    UNMutableNotificationContent* content = [[UNMutableNotificationContent alloc] init];
+    content.title = @"这是一条通知的标题";
+    content.body = @"这是一条通知的主体";
+    content.sound = [UNNotificationSound defaultSound];
+    
+    // 在 alertTime 后推送本地推送,repeats:是否重复
+    UNTimeIntervalNotificationTrigger* trigger = [UNTimeIntervalNotificationTrigger
+                                                  triggerWithTimeInterval:alerTime repeats:YES];
+    
+    // 新建一个推送请求
+    UNNotificationRequest* request = [UNNotificationRequest requestWithIdentifier:@"Notification"
+                                                                          content:content trigger:trigger];
+    
+    //添加推送成功后，弹出提示框
+    [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"本地通知" message:@"成功添加推送" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleCancel handler:nil];	
+        [alert addAction:cancelAction];
+        [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alert animated:YES completion:nil];
+    }];
+    [center removePendingNotificationRequestsWithIdentifiers:@[@"Notification"]];
+}
 
 - (void)applicationWillResignActive:(UIApplication *)application {
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
@@ -46,6 +88,7 @@
 - (void)applicationWillTerminate:(UIApplication *)application {
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
+
 
 
 @end
